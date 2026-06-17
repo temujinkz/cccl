@@ -56,6 +56,7 @@ Checks:
   - '-bugprone-inc-dec-in-conditions'
   - '-bugprone-pointer-arithmetic-on-polymorphic-object'
   # We probably want this eventually, but needs discussion
+  - '-bugprone-argument-comment'
   # END REMOVE ME
   # TODO(jfaibussowit):
   #
