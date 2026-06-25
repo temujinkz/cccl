@@ -144,7 +144,6 @@ public:
       // adding the test would give additional overhead.
       // ::cuda::std::__set_debug_format(__formatter);
     });
-
     return __begin;
   }
 
@@ -177,7 +176,6 @@ public:
       __buffer.__make_output_iterator(), __ctx};
 
     (void) __format_tuple(__tuple, __c);
-
     return ::cuda::std::__fmt_write_string_no_precision(__buffer.__view(), __ctx.out(), __specs);
   }
 };

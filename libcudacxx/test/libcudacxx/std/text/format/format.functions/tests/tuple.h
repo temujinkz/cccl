@@ -33,7 +33,8 @@ enum class color
 template <class CharT>
 struct cuda::std::formatter<color, CharT> : cuda::std::formatter<basic_string_view<CharT>, CharT>
 {
-  TEST_FUNC auto format(color c, auto& ctx) const
+  template <class Ctx>
+  TEST_FUNC auto format(color c, Ctx& ctx) const
   {
     constexpr basic_string_view<CharT> color_names[]{
       TEST_STRLIT(CharT, "black"), TEST_STRLIT(CharT, "red"), TEST_STRLIT(CharT, "gold")};
