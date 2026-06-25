@@ -49,6 +49,14 @@ template <class _CharT, class _Tuple, class _Void, class... _Args>
 class __fmt_formatter_tuple : public __fmt_disabled_formatter
 {};
 
+template <class _CharT>
+[[nodiscard]] _CCCL_API constexpr __fmt_spec_parser<_CharT> __fmt_formatter_tuple_make_parser() noexcept
+{
+  __fmt_spec_parser<_CharT> __parser{};
+  __parser.__alignment_ = ::cuda::std::to_underlying(__fmt_spec_alignment::__left);
+  return __parser;
+}
+
 template <class _CharT, class _Tuple, class... _Args>
 class __fmt_formatter_tuple<_CharT,
                             _Tuple,
@@ -80,12 +88,7 @@ class __fmt_formatter_tuple<_CharT,
   }
 
 public:
-  __fmt_spec_parser<_CharT> __parser_{};
-
-  _CCCL_API constexpr __fmt_formatter_tuple() noexcept
-  {
-    __parser_.__alignment_ = ::cuda::std::to_underlying(__fmt_spec_alignment::__left);
-  }
+  __fmt_spec_parser<_CharT> __parser_ = ::cuda::std::__fmt_formatter_tuple_make_parser<_CharT>();
 
   _CCCL_API constexpr void set_separator(basic_string_view<_CharT> __separator) noexcept
   {
