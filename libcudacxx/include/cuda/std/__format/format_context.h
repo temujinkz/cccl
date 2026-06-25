@@ -24,6 +24,7 @@
 #include <cuda/std/__cstddef/types.h>
 #include <cuda/std/__format/buffer.h>
 #include <cuda/std/__format/format_arg.h>
+#include <cuda/std/__format/format_arg_store.h>
 #include <cuda/std/__format/format_error.h>
 #include <cuda/std/__format/formatter.h>
 #include <cuda/std/__fwd/format.h>

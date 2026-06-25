@@ -39,8 +39,6 @@
 #include <cuda/std/__memory/allocate_at_least.h>
 #include <cuda/std/__memory/allocator.h>
 #include <cuda/std/__memory/allocator_traits.h>
-#include <cuda/std/__memory/destruct_n.h>
-#include <cuda/std/__memory/uninitialized_algorithms.h>
 #include <cuda/std/__type_traits/conditional.h>
 #include <cuda/std/__utility/exception_guard.h>
 #include <cuda/std/__utility/move.h>
@@ -566,7 +564,6 @@ class __fmt_retarget_buffer
 {
   using _Alloc _CCCL_NODEBUG_ALIAS = allocator<_CharT>;
 
-  _CCCL_NO_UNIQUE_ADDRESS _Alloc __alloc_;
   _CharT* __ptr_;
   size_t __capacity_;
   size_t __size_{0};
@@ -579,16 +576,10 @@ class __fmt_retarget_buffer
   _CCCL_API void __grow_buffer(size_t __capacity)
   {
     _CCCL_ASSERT(__capacity > __capacity_, "the buffer must grow");
-    auto __result = ::cuda::std::__allocate_at_least(__alloc_, __capacity);
-    auto __guard  = ::cuda::std::__make_exception_guard([&] {
-      allocator_traits<_Alloc>::deallocate(__alloc_, __result.ptr, __result.count);
-    });
-    // This shouldn't throw, but just to be safe. Note that at -O1 this
-    // guard is optimized away so there is no runtime overhead.
-    ::cuda::std::uninitialized_move_n(__ptr_, __size_, __result.ptr);
-    __guard.__complete();
-    ::cuda::std::destroy_n(__ptr_, __size_);
-    allocator_traits<_Alloc>::deallocate(__alloc_, __ptr_, __capacity_);
+    _Alloc __alloc;
+    auto __result = ::cuda::std::__allocate_at_least(__alloc, __capacity);
+    ::cuda::std::copy_n(__ptr_, __size_, __result.ptr);
+    __alloc.deallocate(__ptr_, __capacity_);
 
     __ptr_      = __result.ptr;
     __capacity_ = __result.count;
@@ -637,13 +628,14 @@ public:
   _CCCL_API explicit __fmt_retarget_buffer(size_t __size_hint)
   {
     // When the initial size is very small a lot of resizes happen
-    // when elements added. So use a hard-coded minimum size.
+    // when elements are added. So use a hard-coded minimum size.
     //
     // Note a size < 2 will not work
     // - 0 there is no buffer, while push_back requires 1 empty element.
     // - 1 multiplied by the grow factor is 1 and thus the buffer never
     //   grows.
-    auto __result = ::cuda::std::__allocate_at_least(__alloc_, ::cuda::std::max(__size_hint, 256 / sizeof(_CharT)));
+    _Alloc __alloc;
+    auto __result = ::cuda::std::__allocate_at_least(__alloc, ::cuda::std::max(__size_hint, 256 / sizeof(_CharT)));
     __ptr_        = __result.ptr;
     __capacity_   = __result.count;
   }
@@ -653,8 +645,7 @@ public:
 
   _CCCL_API ~__fmt_retarget_buffer()
   {
-    ::cuda::std::destroy_n(__ptr_, __size_);
-    allocator_traits<_Alloc>::deallocate(__alloc_, __ptr_, __capacity_);
+    _Alloc{}.deallocate(__ptr_, __capacity_);
   }
 
   [[nodiscard]] _CCCL_API __iterator __make_output_iterator() noexcept
@@ -664,9 +655,7 @@ public:
 
   _CCCL_API void push_back(_CharT __c)
   {
-    ::cuda::std::__construct_at(__ptr_ + __size_, __c);
-    ++__size_;
-
+    __ptr_[__size_++] = __c;
     if (__size_ == __capacity_)
     {
       __grow_buffer();
@@ -683,7 +672,7 @@ public:
       __grow_buffer(__size_ + __n + 1);
     }
 
-    ::cuda::std::uninitialized_copy_n(__str.data(), __n, __ptr_ + __size_);
+    ::cuda::std::copy_n(__str.data(), __n, __ptr_ + __size_);
     __size_ += __n;
   }
 
@@ -700,7 +689,6 @@ public:
       __grow_buffer(__size_ + __n + 1);
     }
 
-    ::cuda::std::uninitialized_default_construct_n(__ptr_ + __size_, __n);
     ::cuda::std::transform(__first, __last, __ptr_ + __size_, ::cuda::std::move(__operation));
     __size_ += __n;
   }
@@ -713,7 +701,7 @@ public:
       __grow_buffer(__size_ + __n + 1);
     }
 
-    ::cuda::std::uninitialized_fill_n(__ptr_ + __size_, __n, __value);
+    ::cuda::std::fill_n(__ptr_ + __size_, __n, __value);
     __size_ += __n;
   }
 
